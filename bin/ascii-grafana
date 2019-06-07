@@ -42,16 +42,41 @@ def cli(verbose, quiet):
     logging.getLogger('').setLevel(level_table[verbosity])
 
 
-@cli.command()
-@click.option('--api_key', type=str)
-@click.option('--baseurl', type=str)
-@click.option('-d', '--dashboard', 'dashboard_uid', type=str)
-@click.option('--rows', type=int, default=None)
-@click.option('--cols', type=int, default=None)
-@click.option('--loop', type=int, default=None)
-def dashboard(api_key, baseurl, dashboard_uid, rows, cols, loop):
+@cli.command(help="""
 
-    g = Grafana(api_key, baseurl)
+Renders a given grafana dashboard to the terminal. The panels of
+the dashboard, of the types supported by ascii-grafana, will be
+printed one after the other as ascii.
+
+""")
+@click.option('-d', '--dashboard', 'dashboard_uid',
+              type=str, required=True, envvar="AG_DASHBOARD",
+              help="UID of the dashboard to render.")
+@click.option('-r', '--rows',
+              type=int, default=None, envvar="AG_ROWS",
+              help="""Number of rows to render, defaults to terminal's size.""")
+@click.option('-c', '--cols',
+              type=int, default=None, envvar="AG_COLS",
+              help="""Number of cols to render, defaults to terminal's size.""")
+@click.option('-l', '--loop',
+              type=int, default=None, envvar="AG_LOOP",
+              help="""If present specifies the number of seconds to wait between
+                      rendering panels of the dashboard. If not
+                      provided every dashboard panel will be rendered
+                      exactly once and then the command will
+                      terminate.""")
+@click.option('-k', '--api-key',
+              type=str, required=True, envvar="AG_API_KEY",
+              help="""Grafana API KEY. Must have view access to the dashboard. Example:
+                      eyJrIjoidFZMOWsyMDlzQnQzZXk2VW9XVEwxMTRZM2NJWm4wakoiLCJuIjoibWFyY28tdGVzdCIsImlkIjoxfQ==
+                      Passed via env var AG_API_KEY as well.""")
+@click.option('-u', '--grafana-url',
+              type=str, required=True, envvar="AG_GRAFANA_URL",
+              help="""Base URL for the grafana instance. Example:
+                      https://grafana.example.com. Passed via env var AG_GRAFANA_URL as well.""")
+def dashboard(api_key, grafana_url, dashboard_uid, rows, cols, loop):
+
+    g = Grafana(api_key, grafana_url)
     d = g.dashboard(dashboard_uid)
 
     if cols is None and rows is None:
@@ -70,4 +95,4 @@ def dashboard(api_key, baseurl, dashboard_uid, rows, cols, loop):
 
 
 if __name__ == '__main__':
-    cli()
+    cli(auto_envvar_prefix='ASCII_GRAFANA')

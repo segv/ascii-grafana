@@ -25,8 +25,8 @@ class FeatureNotSupported(ApplicationException):
 
 
 class Grafana:
-    def __init__(self, api_key, baseurl):
-        self.session = Session(api_key=api_key, baseurl=baseurl)
+    def __init__(self, api_key, grafana_url):
+        self.session = Session(api_key=api_key, baseurl=grafana_url)
 
     def get_series(self, query, start, end, step):
         res = self.session.get("/api/datasources/proxy/1/api/v1/query_range",
