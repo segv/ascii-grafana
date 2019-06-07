@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+from ascii_grafana import Grafana
+from ascii_grafana.__version__ import __version__
+import click
+import logging
+import os
+import time
+
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+
+
+class AliasedGroup(click.Group):
+    def get_command(self, ctx, cmd_name):
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+        matches = [x for x in self.list_commands(ctx)
+                   if x.startswith(cmd_name)]
+        if not matches:
+            return None
+        elif len(matches) == 1:
+            return click.Group.get_command(self, ctx, matches[0])
+        ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
+
+
+@click.group(cls=AliasedGroup)
+@click.version_option(__version__)
+@click.option('-v', '--verbose', count=True)
+@click.option('-q', '--quiet', count=True)
+def cli(verbose, quiet):
+    verbosity = 1 - quiet + verbose
+
+    if verbosity <= 0:
+        verbosity = 0
+    elif verbosity >= 4:
+        verbosity = 4
+
+    # level_table = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
+    level_table = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.getLogger('').setLevel(level_table[verbosity])
+
+
+@cli.command(help="""
+
+Renders a given grafana dashboard to the terminal. The panels of
+the dashboard, of the types supported by ascii-grafana, will be
+printed one after the other as ascii.
+
+""")
+@click.option('-d', '--dashboard', 'dashboard_uid',
+              type=str, required=True, envvar="AG_DASHBOARD",
+              help="UID of the dashboard to render.")
+@click.option('-r', '--rows',
+              type=int, default=None, envvar="AG_ROWS",
+              help="""Number of rows to render, defaults to terminal's size.""")
+@click.option('-c', '--cols',
+              type=int, default=None, envvar="AG_COLS",
+              help="""Number of cols to render, defaults to terminal's size.""")
+@click.option('-l', '--loop',
+              type=int, default=None, envvar="AG_LOOP",
+              help="""If present specifies the number of seconds to wait between
+                      rendering panels of the dashboard. If not
+                      provided every dashboard panel will be rendered
+                      exactly once and then the command will
+                      terminate.""")
+@click.option('-k', '--api-key',
+              type=str, required=True, envvar="AG_API_KEY",
+              help="""Grafana API KEY. Must have view access to the dashboard. Example:
+                      eyJrIjoidFZMOWsyMDlzQnQzZXk2VW9XVEwxMTRZM2NJWm4wakoiLCJuIjoibWFyY28tdGVzdCIsImlkIjoxfQ==
+                      Passed via env var AG_API_KEY as well.""")
+@click.option('-u', '--grafana-url',
+              type=str, required=True, envvar="AG_GRAFANA_URL",
+              help="""Base URL for the grafana instance. Example:
+                      https://grafana.example.com. Passed via env var AG_GRAFANA_URL as well.""")
+def dashboard(api_key, grafana_url, dashboard_uid, rows, cols, loop):
+
+    g = Grafana(api_key, grafana_url)
+    d = g.dashboard(dashboard_uid)
+
+    if cols is None and rows is None:
+        cols, rows = os.get_terminal_size(0)
+
+    panels = d.panels
+
+    if loop is None:
+        for p in panels:
+            p.render(rows=rows, cols=cols)
+    else:
+        while True:
+            for p in panels:
+                p.render(rows=rows, cols=cols)
+                time.sleep(loop)
+
+
+if __name__ == '__main__':
+    cli(auto_envvar_prefix='ASCII_GRAFANA')
