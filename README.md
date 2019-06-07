@@ -1,5 +1,7 @@
 # ascii-grafana
 
+## Usage
+
 Renders a grafana dashboard (and panels), such as:
 
 ![screenshot from browser](./docs/assets/grafana.png)
@@ -70,3 +72,10 @@ Options:
                           AG_GRAFANA_URL as well.  [required]
   --help                  Show this message and exit.
 ```
+
+## Installation
+
+```
+$ pip install git+https://github.com/segv/ascii-grafana.git
+```
+
