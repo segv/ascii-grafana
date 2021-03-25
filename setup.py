@@ -23,7 +23,7 @@ REQUIRED = [
     'Click==7.0',
     'click-config-file==0.5.0',
     'requests[security]==2.22.0',
-    'pyyaml==5.1',
+    'pyyaml==5.4',
     'pystache==0.5.4',
     'arrow==0.14.2',
 ]
